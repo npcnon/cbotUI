@@ -110,7 +110,7 @@ export default function LoginPage() {
       
       // Redirect after short delay
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/chat");
       }, 1000);
       
     } catch (error: any) {
