@@ -1,103 +1,126 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowRightIcon } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [mounted, setMounted] = useState(false);
+  // Animation classes that will be applied after component mounts
+  const [animationClasses, setAnimationClasses] = useState({
+    container: "opacity-0 translate-y-4",
+    title: "opacity-0 -translate-y-4",
+    titleAccent: "",
+    description: "opacity-0",
+    buttons: "opacity-0 translate-y-4",
+    decorativeElement: "opacity-0"
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Handle animations after mount
+  useEffect(() => {
+    setMounted(true);
+    
+    // Stagger animations
+    const timer1 = setTimeout(() => {
+      setAnimationClasses(prev => ({
+        ...prev,
+        container: "opacity-100 translate-y-0 transition-all duration-600"
+      }));
+    }, 100);
+    
+    const timer2 = setTimeout(() => {
+      setAnimationClasses(prev => ({
+        ...prev,
+        title: "opacity-100 translate-y-0 transition-all duration-700"
+      }));
+    }, 300);
+    
+    const timer3 = setTimeout(() => {
+      setAnimationClasses(prev => ({
+        ...prev,
+        titleAccent: "animate-pulse"
+      }));
+    }, 500);
+    
+    const timer4 = setTimeout(() => {
+      setAnimationClasses(prev => ({
+        ...prev,
+        description: "opacity-100 transition-all duration-700"
+      }));
+    }, 500);
+    
+    const timer5 = setTimeout(() => {
+      setAnimationClasses(prev => ({
+        ...prev,
+        buttons: "opacity-100 translate-y-0 transition-all duration-700"
+      }));
+    }, 800);
+    
+    const timer6 = setTimeout(() => {
+      setAnimationClasses(prev => ({
+        ...prev,
+        decorativeElement: "opacity-100 transition-all duration-700"
+      }));
+    }, 1200);
+    
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+      clearTimeout(timer5);
+      clearTimeout(timer6);
+    };
+  }, []);
+
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 overflow-hidden">
+      <div className={`w-full max-w-md text-center space-y-8 transition-all duration-500 ${animationClasses.container}`}>
+        <div className="space-y-2">
+          <div className={`transition-all duration-500 ${animationClasses.title}`}>
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+              Welcome to{" "}
+              <span className={`text-indigo-600 inline-block ${animationClasses.titleAccent}`}>
+                CHATBOT
+              </span>
+            </h1>
+          </div>
+          
+          <p className={`text-lg text-gray-600 transition-opacity duration-500 ${animationClasses.description}`}>
+            Get started by signing in to your account or creating a new one
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        <div className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-500 ${animationClasses.buttons}`}>
+          <div className="transform transition-transform duration-200 hover:scale-105 active:scale-95">
+            <Button asChild className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700">
+              <Link href="/auth/login" className="flex items-center">
+                Sign In 
+                <span className="ml-2 inline-block animate-bounce-x">
+                  <ArrowRightIcon className="h-4 w-4" />
+                </span>
+              </Link>
+            </Button>
+          </div>
+          
+          <div className="transform transition-transform duration-200 hover:scale-105 active:scale-95">
+            <Button asChild variant="outline" className="h-11 px-6">
+              <Link href="/auth/register">
+                Create Account
+              </Link>
+            </Button>
+          </div>
+        </div>
+        
+        <div className={`mt-12 flex justify-center transition-opacity duration-500 ${animationClasses.decorativeElement}`}>
+          <div className="w-16 h-16 relative">
+            <div className="absolute inset-0 rounded-full bg-indigo-200 animate-ping-slow opacity-50"></div>
+            <div className="absolute inset-2 rounded-full bg-indigo-300 animate-ping-medium opacity-60"></div>
+            <div className="absolute inset-4 rounded-full bg-indigo-500 animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
