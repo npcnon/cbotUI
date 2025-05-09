@@ -91,7 +91,8 @@ export default function LoginPage() {
       // Show loading state
       document.body.style.cursor = "wait";
       
-      const response = await axios.post("https://chatbot-o0ca.onrender.com/api/v1/user/token", 
+      const response = await axios.post(
+        "http://localhost:8000/api/v1/user/token", // Use localhost instead of 127.0.0.1
         new URLSearchParams({
           username: formData.email,
           password: formData.password
@@ -99,12 +100,16 @@ export default function LoginPage() {
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
-          }
+          },
+          withCredentials: true // Important! Tells axios to include cookies
         }
       );
       
       // Store token in localStorage or other state management
       localStorage.setItem('accessToken', response.data.access_token);
+      if (response.data.csrf_token) {
+        localStorage.setItem('csrfToken', response.data.csrf_token);
+      }
       
       setSuccess("Login successful! Redirecting...");
       
@@ -130,9 +135,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4 overflow-hidden">
-      <div className={`w-full max-w-md transition-all duration-700 ${fadeIn.card}`}>
-        <Card className="border border-gray-200 shadow-xl bg-white/90 backdrop-blur-sm overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4 overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-indigo-900/20 to-transparent opacity-50"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-xl transform translate-x-1/4 translate-y-1/4"></div>
+        <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-xl"></div>
+      </div>
+
+      <div className={`w-full max-w-md relative transition-all duration-700 ${fadeIn.card}`}>
+        <Card className="border border-indigo-900/30 shadow-xl bg-gray-900/80 backdrop-blur-md text-white overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1">
             {isLoading && (
               <div className="h-full bg-indigo-600 animate-progress-indeterminate"></div>
@@ -140,10 +152,10 @@ export default function LoginPage() {
           </div>
           
           <CardHeader className={`space-y-2 text-center transition-opacity duration-500 ${fadeIn.title}`}>
-            <CardTitle className="text-3xl font-bold tracking-tight text-indigo-800">
+            <CardTitle className="text-3xl font-bold tracking-tight text-white">
               Welcome back
             </CardTitle>
-            <CardDescription className="text-gray-600 font-medium">
+            <CardDescription className="text-gray-300 font-medium">
               Enter your credentials to sign in to your account
             </CardDescription>
           </CardHeader>
@@ -151,19 +163,19 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit}>
             <CardContent className={`space-y-5 transition-opacity duration-500 ${fadeIn.form}`}>
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm font-medium">
+                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-200 rounded-md text-sm font-medium">
                   {error}
                 </div>
               )}
               
               {success && (
-                <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm font-medium">
+                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium">
                   {success}
                 </div>
               )}
             
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
+                <Label htmlFor="email" className="text-gray-300 font-medium">Email</Label>
                 <Input
                   id="email"
                   name="email"
@@ -173,17 +185,17 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-50 border-gray-300"
+                  className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
                   disabled={isLoading}
                 />
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
+                  <Label htmlFor="password" className="text-gray-300 font-medium">Password</Label>
                   <Link 
                     href="/auth/forgot-password" 
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors hover:underline"
+                    className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors hover:underline"
                   >
                     Forgot password?
                   </Link>
@@ -198,13 +210,13 @@ export default function LoginPage() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="h-12 pr-10 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-50 border-gray-300"
+                    className="h-12 pr-10 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
                     disabled={isLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-200 transition-colors"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     disabled={isLoading}
                   >
@@ -221,7 +233,7 @@ export default function LoginPage() {
             <CardFooter className={`flex flex-col space-y-5 pt-3 transition-opacity duration-500 ${fadeIn.footer}`}>
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-700 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-md"
+                className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30"
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -241,16 +253,16 @@ export default function LoginPage() {
               
               <div className="relative py-3">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
+                  <div className="w-full border-t border-gray-700"></div>
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white px-4 text-sm text-gray-500">or</span>
+                  <span className="bg-gray-900 px-4 text-sm text-gray-400">or</span>
                 </div>
               </div>
               
-              <p className="text-center text-base font-medium">
+              <p className="text-center text-base font-medium text-gray-300">
                 Don&apos;t have an account?{" "}
-                <Link href="/auth/register" className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors hover:underline">
+                <Link href="/auth/register" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline">
                   Sign up
                 </Link>
               </p>
@@ -259,9 +271,9 @@ export default function LoginPage() {
         </Card>
         
         {/* Decorative elements */}
-        <div className="absolute -z-10 top-1/4 left-1/4 w-32 h-32 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
-        <div className="absolute -z-10 top-1/3 right-1/4 w-40 h-40 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute -z-10 bottom-1/4 right-1/3 w-36 h-36 bg-indigo-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+        <div className="absolute -z-10 top-1/4 left-1/4 w-32 h-32 bg-purple-600/20 rounded-full filter blur-xl opacity-30 animate-blob"></div>
+        <div className="absolute -z-10 top-1/3 right-1/4 w-40 h-40 bg-blue-600/20 rounded-full filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute -z-10 bottom-1/4 right-1/3 w-36 h-36 bg-indigo-600/20 rounded-full filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
       </div>
     </div>
   );
