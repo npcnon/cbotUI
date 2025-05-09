@@ -325,7 +325,7 @@ export default function RegisterPage() {
             <CardFooter className={`flex flex-col space-y-5 pt-4 transition-opacity duration-500 ${fadeIn.footer}`}>
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30"
+                className="w-full h-12 text-base font-semibold text-indigo-300 bg-indigo-600 hover:bg-indigo-500 hover:text-indigo-100 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30"
                 disabled={isLoading || !formData.agreeToTerms || !validation.password.isValid}
               >
                 {isLoading ? (

@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
-import { AlertCircle, Plus, Trash2, Edit, Send, PenLine, BookOpen, Loader2 } from "lucide-react"
+import { AlertCircle, Plus, Trash2, Edit, Send, PenLine, BookOpen, Loader2, Key } from "lucide-react"
 import {
   Tabs,
   TabsContent,
@@ -31,10 +31,9 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ChatMessage from "@/components/chatbot/ChatMessage"
-import { Sidebar } from "@/components/chatbot/SideBar"
 import apiClient from "@/lib/api-client"
 import { toast } from "sonner"
-
+import { ApiKeysSidebar } from "@/components/chatbot/ApiKeySideBar"
 interface Message {
   role: "user" | "assistant" | "system"
   content: string
@@ -80,7 +79,8 @@ export default function ChatPage() {
   const [isKnowledgeDialogOpen, setIsKnowledgeDialogOpen] = useState(false)
   const [isEditKnowledgeDialogOpen, setIsEditKnowledgeDialogOpen] = useState(false)
   const [customAIId, setCustomAIId] = useState<string>("00874615-f1e1-4200-8e8c-0e5ec4625996") // Default AI ID
-  
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true) //TODO: fix this expansion later
+
   // UI state
   const [activeTab, setActiveTab] = useState("chat")
   const [avatars, setAvatars] = useState({
@@ -402,19 +402,35 @@ export default function ChatPage() {
     <div className="flex h-screen">
       {/* Main content area */}
       <div className="flex-1 flex flex-col max-h-screen">
-        <header className="p-4 border-b">
+      <header className="p-4 border-b">
           <h1 className="text-2xl font-bold">Custom AI Assistant</h1>
           <p className="text-sm text-muted-foreground">
             Chat with your personalized AI assistant with custom knowledge
           </p>
         </header>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <div className="border-b px-4">
-            <TabsList>
-              <TabsTrigger value="chat">Test AI(Chat)</TabsTrigger>
-              <TabsTrigger value="personality">Personality</TabsTrigger>
-              <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab} 
+        className="flex-1 flex flex-col bg-gray-900/80 backdrop-blur-sm">
+          <div className="border-b border-gray-800 px-4">
+            <TabsList className="bg-gray-800/50">
+              <TabsTrigger 
+                value="chat"
+                className="data-[state=active]:bg-gray-700/50 data-[state=active]:text-indigo-300"
+              >
+                Test AI(Chat)
+              </TabsTrigger>
+              <TabsTrigger 
+                value="personality"
+                className="data-[state=active]:bg-gray-700/50 data-[state=active]:text-indigo-300"
+              >
+                Personality
+              </TabsTrigger>
+              <TabsTrigger 
+                value="knowledge"
+                className="data-[state=active]:bg-gray-700/50 data-[state=active]:text-indigo-300"
+              >
+                Knowledge
+              </TabsTrigger>
             </TabsList>
           </div>
           
@@ -757,6 +773,7 @@ export default function ChatPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ApiKeysSidebar isExpanded={isSidebarExpanded} />
     </div>
   )
 }

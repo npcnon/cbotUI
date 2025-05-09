@@ -91,14 +91,14 @@ export default function Home() {
         </div>
 
         <div className={`flex flex-col sm:flex-row gap-4 justify-center transition-all duration-500 ${animationClasses.buttons}`}>
-          <Button asChild className="h-12 px-6 bg-indigo-600  hover:bg-indigo-50 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95">
+          <Button asChild className="h-12 px-6 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95">
             <Link href="/auth/login" className="flex items-center justify-center">
               <LogIn className="h-4 w-4 mr-2" />
               Sign In 
             </Link>
           </Button>
           
-          <Button asChild variant="outline" className="h-12 px-6 border-indigo-300 text-indigo-700 hover:bg-indigo-50 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95">
+          <Button asChild variant="outline" className="h-12 px-6 border-indigo-300 text-indigo-400 hover:bg-indigo-100 shadow-md transition-all hover:shadow-lg hover:scale-105 active:scale-95">
             <Link href="/auth/register" className="flex items-center justify-center">
               <UserPlus className="h-4 w-4 mr-2" />
               Create Account
