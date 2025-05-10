@@ -100,54 +100,56 @@ function LoginForm() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-    setSuccess("");
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+  setError("");
+  setSuccess("");
 
-    // Clear all cookies before logging in
-    clearCookies();
+  // REMOVE THIS LINE - don't clear cookies before login
+  // clearCookies();
 
-    try {
-      // Show loading state
-      document.body.style.cursor = "wait";
-      
-      // Prepare the data as a JSON object
-      const data = {
-        username: formData.email,
-        password: formData.password
-      };
+  try {
+    // Show loading state
+    document.body.style.cursor = "wait";
+    
+    // Prepare the data as a JSON object
+    const data = {
+      username: formData.email,
+      password: formData.password
+    };
 
-      // Send the request with JSON data
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`, data
-      );
+    // Send the request with JSON data AND withCredentials flag
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`, 
+      data,
+      { withCredentials: true }  
+    );
 
-      console.log(`Login response:`, JSON.stringify(response.data));
+    console.log(`Login response:`, JSON.stringify(response.data));
 
-      setSuccess("Login successful! Redirecting...");
-      
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push("/chat");
-      }, 1000);
-      
-    } catch (error: any) {
-      console.error("Login failed:", error);
-      
-      // Handle error response
-      const serverMessage =
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        "Login failed. Please check your credentials and try again.";
-      
-      setError(serverMessage);
-    } finally {
-      setIsLoading(false);
-      document.body.style.cursor = "default";
-    }
-  };
+    setSuccess("Login successful! Redirecting...");
+    
+    // Redirect after a short delay
+    setTimeout(() => {
+      router.push("/chat");
+    }, 1000);
+    
+  } catch (error: any) {
+    console.error("Login failed:", error);
+    
+    // Handle error response
+    const serverMessage =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      "Login failed. Please check your credentials and try again.";
+    
+    setError(serverMessage);
+  } finally {
+    setIsLoading(false);
+    document.body.style.cursor = "default";
+  }
+};
 
 
 
