@@ -90,35 +90,45 @@ function LoginForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const clearCookies = () => {
+    // Loop through all cookies and delete them
+    const cookies = document.cookie.split(";");
+
+    cookies.forEach((cookie) => {
+      const cookieName = cookie.split("=")[0].trim();
+      document.cookie = `${cookieName}=;expires=${new Date(0).toUTCString()};path=/`;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
     setSuccess("");
-    
+
+    // Clear all cookies before logging in
+    clearCookies();
+
     try {
       // Show loading state
       document.body.style.cursor = "wait";
       
+      // Prepare the data as a JSON object
+      const data = {
+        username: formData.email,
+        password: formData.password
+      };
+
+      // Send the request with JSON data
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`,
-        new URLSearchParams({
-          username: formData.email,
-          password: formData.password
-        }), 
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          withCredentials: true // Important! Tells axios to include cookies
-        }
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`, data
       );
+
       console.log(`Login response:`, JSON.stringify(response.data));
 
-      
       setSuccess("Login successful! Redirecting...");
       
-      // Redirect after short delay
+      // Redirect after a short delay
       setTimeout(() => {
         router.push("/chat");
       }, 1000);
