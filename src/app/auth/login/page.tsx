@@ -92,7 +92,7 @@ export default function LoginPage() {
       document.body.style.cursor = "wait";
       
       const response = await axios.post(
-        "http://localhost:8000/api/v1/user/token", // Use localhost instead of 127.0.0.1
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`,
         new URLSearchParams({
           username: formData.email,
           password: formData.password
@@ -104,12 +104,8 @@ export default function LoginPage() {
           withCredentials: true // Important! Tells axios to include cookies
         }
       );
-      
-      // Store token in localStorage or other state management
-      localStorage.setItem('accessToken', response.data.access_token);
-      if (response.data.csrf_token) {
-        localStorage.setItem('csrfToken', response.data.csrf_token);
-      }
+      console.log(`Login response:`, JSON.stringify(response.data));
+
       
       setSuccess("Login successful! Redirecting...");
       
@@ -133,6 +129,8 @@ export default function LoginPage() {
       document.body.style.cursor = "default";
     }
   };
+
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4 overflow-hidden">

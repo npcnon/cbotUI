@@ -125,7 +125,7 @@ export default function RegisterPage() {
       // Show loading state
       document.body.style.cursor = "wait";
   
-      const response = await axios.post("http://127.0.0.1:8000/api/v1/user/register", {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/register`, {
         email: formData.email,
         first_name: formData.first_name,
         last_name: formData.last_name,

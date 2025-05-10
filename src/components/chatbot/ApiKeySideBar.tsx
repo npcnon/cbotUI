@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button"
 import { 
   AlertCircle, 
   Key,
-  Loader2
+  Loader2,
+  Lock
 } from "lucide-react"
 import { ApiKey, ApiKeyFormData, ApiKeyResponse } from "@/lib/types/types"
 import { createApiKey, deleteApiKey, fetchApiKeys } from "@/lib/apikey-client"
@@ -22,9 +23,10 @@ import { ApiKeysList } from '@/components/chatbot/ApiKeyList'
 
 interface ApiKeysSidebarProps {
   isExpanded: boolean;
+  isChatLocked?: boolean; // New prop to hide the component when chat is locked
 }
 
-export const ApiKeysSidebar = ({ isExpanded }: ApiKeysSidebarProps) => {
+export const ApiKeysSidebar = ({ isExpanded, isChatLocked = false }: ApiKeysSidebarProps) => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -46,8 +48,10 @@ export const ApiKeysSidebar = ({ isExpanded }: ApiKeysSidebarProps) => {
   }
 
   useEffect(() => {
-    loadApiKeys()
-  }, [])
+    if (!isChatLocked) {
+      loadApiKeys()
+    }
+  }, [isChatLocked])
 
   const handleCreateApiKey = async (formData: ApiKeyFormData) => {
     try {
@@ -73,6 +77,34 @@ export const ApiKeysSidebar = ({ isExpanded }: ApiKeysSidebarProps) => {
     }
   }
 
+  // If chat is locked, show a simple locked message instead
+  if (isChatLocked) {
+    return (
+      <div className="w-64 border-l border-gray-800 bg-gray-900/80 backdrop-blur-sm text-gray-400 flex flex-col h-full overflow-hidden">
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex justify-between items-center">
+            <h3 className="text-md font-medium text-gray-500 flex items-center">
+              <Lock className="h-4 w-4 mr-2" />
+              API Access
+            </h3>
+          </div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center p-4 text-center">
+          <div>
+            <Lock className="h-12 w-12 mx-auto mb-4 text-gray-600" />
+            <p className="text-sm">
+              API access is locked until you set up your AI assistant.
+            </p>
+            <p className="text-xs mt-2 text-gray-600">
+              Complete the personality and knowledge setup to unlock.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (!isExpanded) {
     // Render compact view
     return (
@@ -91,7 +123,7 @@ export const ApiKeysSidebar = ({ isExpanded }: ApiKeysSidebarProps) => {
   }
   
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="w-64 border-l border-gray-800 bg-gray-900/80 backdrop-blur-sm flex flex-col h-full overflow-hidden">
       <div className="p-4 border-b border-gray-800">
         <div className="flex justify-between items-center">
           <h3 className="text-md font-medium text-indigo-300 flex items-center">

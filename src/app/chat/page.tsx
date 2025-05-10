@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { keyframes } from "@emotion/react";
 import { 
   Card, 
   CardContent, 
@@ -34,6 +35,8 @@ import ChatMessage from "@/components/chatbot/ChatMessage"
 import apiClient from "@/lib/api-client"
 import { toast } from "sonner"
 import { ApiKeysSidebar } from "@/components/chatbot/ApiKeySideBar"
+import { stringify } from "querystring"
+import { useRouter } from "next/navigation"
 interface Message {
   role: "user" | "assistant" | "system"
   content: string
@@ -58,6 +61,18 @@ interface Personality {
   updated_at?: string
 }
 
+const pulseKeyframe = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+`;
+
 export default function ChatPage() {
   // Chat state
   const [messages, setMessages] = useState<Message[]>([
@@ -78,7 +93,7 @@ export default function ChatPage() {
   const [isPersonalityDialogOpen, setIsPersonalityDialogOpen] = useState(false)
   const [isKnowledgeDialogOpen, setIsKnowledgeDialogOpen] = useState(false)
   const [isEditKnowledgeDialogOpen, setIsEditKnowledgeDialogOpen] = useState(false)
-  const [customAIId, setCustomAIId] = useState<string>("00874615-f1e1-4200-8e8c-0e5ec4625996") // Default AI ID
+  const [customAIId, setCustomAIId] = useState<string>("") // Default AI ID
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true) //TODO: fix this expansion later
 
   // UI state
@@ -94,39 +109,96 @@ export default function ChatPage() {
     { value: "coming soon!", label: "Coming soon!" },
   ]
   
-    
+  const router = useRouter()
   // Fetch personality and knowledge data on mount
   useEffect(() => {
-    loadData()
-  }, [])
+    const init = async () => {
+      const authorized = await checkAuth();
+      if (authorized) {
+        await loadData();
+      }
+    };
+
+    init();
+  }, [router])
+
+
+  const checkAuth = async () => {
+    try {
+      await apiClient.get('/user/me')
+      const custom_ai = await apiClient.get('/custom-ai/me')
+
+      if (custom_ai.data) {
+        console.log(stringify(custom_ai.data))
+        setCustomAIId(custom_ai.data.id)
+      }
+
+      return true
+    } catch (error) {
+      console.error("Authentication error:", error)
+      // User is not authenticated, immediately redirect to login page
+      // router.replace('/auth/login')
+      return // Stop further execution
+    }
+  }
 
   const loadData = async () => {
     setIsDataLoading(true)
     try {
       // Fetch personality
-      const personalityResponse = await apiClient.get('/personality/by-user')
-      setPersonality(personalityResponse.data)
-      setEditingPersonality(personalityResponse.data?.content || "")
+      try {
+        const personalityResponse = await apiClient.get('/personality/by-user')
+        setPersonality(personalityResponse.data)
+        setEditingPersonality(personalityResponse.data?.content || "")
+        
+        if (personalityResponse.data) {
+          setCustomAIId(personalityResponse.data.custom_ai_id)
+        }
+      } catch (error: any) {
+        if (error.response?.status === 404) {
+          // User has no personality set yet
+          setPersonality(null)
+          setEditingPersonality("")
+        } else {
+          throw error // Rethrow other errors
+        }
+      }
       
       // Fetch knowledge items
-      const knowledgeResponse = await apiClient.get('/knowledge-base/by-user')
-      setKnowledgeItems(knowledgeResponse.data || [])
-      
-      if (personalityResponse.data) {
-        setCustomAIId(personalityResponse.data.custom_ai_id)
+      try {
+        const knowledgeResponse = await apiClient.get('/knowledge-base/by-user')
+        setKnowledgeItems(knowledgeResponse.data || [])
+      } catch (error) {
+        console.error("Error fetching knowledge base:", error)
+        setKnowledgeItems([])
       }
-    } catch (error) {
+    } 
+    catch (error: any) {
       console.error("Error loading data:", error)
-      // Load example data if API fails
-      loadExampleData()
-      toast.error("Couldn't connect to server", {
-        description: "Using example data instead. Connect to the API for full functionality."
-      })
-    } finally {
+
+      const detail = error.response?.data?.detail;
+
+      if (detail === "Personality not found for this user") {
+        setPersonality(null)
+        setEditingPersonality("")
+
+        toast.info("No AI setup found", {
+          description: "Please set up your AI to begin customizing.",
+        })
+      } else {
+        toast.error("Couldn't connect to server", {
+          description: `Please try again later. ${stringify(error)}`,
+        })
+      }
+    }
+  finally {
       setIsDataLoading(false)
     }
   }
-  
+
+  const isChatLocked = () => {
+    return !personality || knowledgeItems.length === 0
+  }
   // Load example data if API fails or for demo purposes
   const loadExampleData = () => {
     const examplePersonality = {
@@ -443,9 +515,62 @@ export default function ChatPage() {
                   <p className="mt-2 text-sm text-muted-foreground">Loading AI assistant...</p>
                 </div>
               </div>
+            ) : isChatLocked() ? (
+              <div className="flex-1 flex items-center justify-center p-4">
+                <Card className="max-w-md border-2 border-red-500">
+                  <CardHeader>
+                    <CardTitle className="text-red-700 flex items-center">
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      Chat Locked
+                    </CardTitle>
+                    <CardDescription>
+                      You need to complete the following steps before you can chat with your AI assistant:
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {!personality && (
+                        <div className="flex items-start space-x-2">
+                          <div className="bg-red-100 text-red-700 rounded-full h-6 w-6 flex items-center justify-center flex-shrink-0">1</div>
+                          <div>
+                            <p className="font-medium">Create a personality</p>
+                            <p className="text-sm text-muted-foreground">Define how your AI assistant behaves and responds</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2 text-red-700 border-red-500"
+                              onClick={() => setActiveTab("personality")}
+                            >
+                              Go to Personality Tab
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {knowledgeItems.length === 0 && (
+                        <div className="flex items-start space-x-2">
+                          <div className="bg-red-100 text-red-700 rounded-full h-6 w-6 flex items-center justify-center flex-shrink-0">{!personality ? "2" : "1"}</div>
+                          <div>
+                            <p className="font-medium">Add knowledge items</p>
+                            <p className="text-sm text-muted-foreground">Teach your AI assistant what it needs to know</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2 text-red-700 border-red-500"
+                              onClick={() => setActiveTab("knowledge")}
+                            >
+                              Go to Knowledge Tab
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             ) : (
               <>
-                {/* Chat messages */}
+                {/* Chat messages - this is original code */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.map((message, index) => (
                     <ChatMessage 
@@ -471,7 +596,7 @@ export default function ChatPage() {
                   )}
                 </div>
                 
-                {/* Input area */}
+                {/* Input area - original code */}
                 <form onSubmit={handleSubmit} className="p-4 border-t flex gap-2">
                   <Input
                     value={userInput}
@@ -497,7 +622,7 @@ export default function ChatPage() {
               </div>
             ) : (
               <>
-                <Card>
+                <Card className={!personality ? "border-2 border-red-500 shadow-lg" : ""}>
                   <CardHeader>
                     <CardTitle className="flex justify-between items-center">
                       <div>AI Personality</div>
@@ -506,6 +631,7 @@ export default function ChatPage() {
                         size="sm"
                         onClick={() => setIsPersonalityDialogOpen(true)}
                         disabled={isLoading}
+                        className={!personality ? "bg-red-100 hover:bg-red-200 text-red-700 border-red-500" : ""}
                       >
                         {personality?.id ? 
                           <><PenLine className="h-4 w-4 mr-1" /> Edit Personality</> : 
@@ -531,12 +657,22 @@ export default function ChatPage() {
                         )}
                       </div>
                     ) : (
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          No personality defined yet. Please create one.
-                        </AlertDescription>
-                      </Alert>
+                      <div>
+                        <Alert className="border-red-500 bg-red-50">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <AlertDescription className="text-red-700">
+                            <strong>No personality defined!</strong> You must create a personality before your AI can function.
+                          </AlertDescription>
+                        </Alert>
+                        <div className="mt-4 text-center">
+                          <Button 
+                            onClick={() => setIsPersonalityDialogOpen(true)}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            <Plus className="h-4 w-4 mr-1" /> Create Personality Now
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -582,18 +718,30 @@ export default function ChatPage() {
                   <Button 
                     onClick={() => setIsKnowledgeDialogOpen(true)}
                     disabled={isLoading}
+                    className={knowledgeItems.length === 0 ? "bg-red-600 hover:bg-red-700 text-white" : ""}
                   >
                     <Plus className="h-4 w-4 mr-1" /> Add Knowledge
                   </Button>
                 </div>
                 
                 {knowledgeItems.length === 0 ? (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      No knowledge items defined yet. Add some knowledge to enhance your AI.
-                    </AlertDescription>
-                  </Alert>
+                  <Card className="border-2 border-red-500 shadow-lg">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
+                        <h3 className="text-lg font-bold text-red-700">Knowledge Base Required</h3>
+                        <p className="text-sm mt-2 mb-4">
+                          Your AI assistant needs knowledge to function. Add knowledge items that it should know about.
+                        </p>
+                        <Button 
+                          onClick={() => setIsKnowledgeDialogOpen(true)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Add Your First Knowledge Item
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ) : (
                   <div className="space-y-4">
                     {knowledgeItems.map(item => (
@@ -656,9 +804,18 @@ export default function ChatPage() {
             <Textarea 
               value={editingPersonality} 
               onChange={(e) => setEditingPersonality(e.target.value)}
-              placeholder="Define the personality of your AI assistant..."
-              className="min-h-[200px]"
+              placeholder="Example: You are a helpful AI assistant with expertise in technical topics. You respond in a friendly and concise manner, providing clear explanations with examples when needed."
+              className={`min-h-[200px] ${!personality ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
             />
+            {!personality && (
+              <Alert className="bg-red-50 border-red-500 text-red-700">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Required:</strong> Your AI needs a personality to function properly. 
+                  Be descriptive about how it should respond to users.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
           
           <DialogFooter>
@@ -668,11 +825,12 @@ export default function ChatPage() {
             <Button 
               type="submit" 
               onClick={handleUpdatePersonality}
-              disabled={isLoading}
+              disabled={isLoading || !editingPersonality.trim()}
+              className={!personality ? "bg-red-600 hover:bg-red-700" : ""}
             >
               {isLoading ? 
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : 
-                <>Save Changes</>
+                <>{personality?.id ? 'Save Changes' : 'Create Personality'}</>
               }
             </Button>
           </DialogFooter>
@@ -702,9 +860,17 @@ export default function ChatPage() {
                 value={newKnowledgeContent} 
                 onChange={(e) => setNewKnowledgeContent(e.target.value)}
                 placeholder="Enter knowledge content..."
-                className="min-h-[200px]"
+                className={`min-h-[200px] ${knowledgeItems.length === 0 ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
               />
             </div>
+            {knowledgeItems.length === 0 && (
+              <Alert className="bg-red-50 border-red-500 text-red-700">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Required:</strong> Your AI needs at least one knowledge item to function properly.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
           
           <DialogFooter>
@@ -715,6 +881,7 @@ export default function ChatPage() {
               type="submit" 
               onClick={handleAddKnowledge}
               disabled={isLoading || !newKnowledgeContent.trim()}
+              className={knowledgeItems.length === 0 ? "bg-red-600 hover:bg-red-700" : ""}
             >
               {isLoading ? 
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Adding...</> : 
@@ -773,7 +940,16 @@ export default function ChatPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ApiKeysSidebar isExpanded={isSidebarExpanded} />
+      <ApiKeysSidebar 
+        isExpanded={isSidebarExpanded} 
+        isChatLocked={isChatLocked()} 
+      />
     </div>
   )
 }
+
+const styles = {
+  pulseAnimation: {
+    animation: `${pulseKeyframe} 2s infinite`,
+  }
+};
