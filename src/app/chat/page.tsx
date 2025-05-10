@@ -137,7 +137,7 @@ export default function ChatPage() {
     } catch (error) {
       console.error("Authentication error:", error)
       // User is not authenticated, immediately redirect to login page
-      // router.replace('/auth/login')
+      router.replace('/auth/login')
       return // Stop further execution
     }
   }

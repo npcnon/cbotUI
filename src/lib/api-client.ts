@@ -47,7 +47,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // If refresh fails, redirect to login
         console.error('Token refresh failed:', refreshError);
-        // window.location.href = '/auth/login';
+        window.location.href = '/auth/login';
         return Promise.reject(refreshError);
       }
     }
