@@ -100,12 +100,13 @@ function LoginForm() {
     });
   };
 
+
+
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
   setIsLoading(true);
   setError("");
   setSuccess("");
-
   // REMOVE THIS LINE - don't clear cookies before login
   // clearCookies();
 
