@@ -475,7 +475,7 @@ export default function ChatPage() {
       {/* Main content area */}
       <div className="flex-1 flex flex-col max-h-screen">
       <header className="p-4 border-b">
-          <h1 className="text-2xl font-bold">Custom AI Assistant</h1>
+          <h1 className="text-2xl font-bold">Custom AI Assistant(DEMO VERSION)</h1>
           <p className="text-sm text-muted-foreground">
             Chat with your personalized AI assistant with custom knowledge
           </p>
