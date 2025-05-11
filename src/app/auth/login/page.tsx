@@ -8,15 +8,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { EyeIcon, EyeOffIcon, LogInIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, LogInIcon, Loader2Icon } from "lucide-react";
 import { useLoading } from "@/lib/loading-context";
 import { Suspense } from "react";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingFallback />}>
       <LoginForm />
     </Suspense>
+  );
+}
+
+// Add a proper loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4">
+      <div className="flex flex-col items-center space-y-4">
+        <Loader2Icon className="h-12 w-12 text-indigo-400 animate-spin" />
+        <p className="text-lg font-medium text-indigo-200">Loading authentication...</p>
+      </div>
+    </div>
   );
 }
 
@@ -43,6 +55,9 @@ function LoginForm() {
     form: "opacity-0",
     footer: "opacity-0"
   });
+  
+  // Input disabled state
+  const [inputsDisabled, setInputsDisabled] = useState(false);
 
   // Initialize animations after mount
   useEffect(() => {
@@ -85,6 +100,11 @@ function LoginForm() {
     };
   }, []);
 
+  // Update inputs disabled state when loading changes
+  useEffect(() => {
+    setInputsDisabled(isLoading);
+  }, [isLoading]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -100,62 +120,79 @@ function LoginForm() {
     });
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setInputsDisabled(true);  // Disable form inputs immediately
+    setError("");
+    setSuccess("");
+    // REMOVE THIS LINE - don't clear cookies before login
+    // clearCookies();
 
+    try {
+      // Show loading state
+      document.body.style.cursor = "wait";
+      
+      // Add a slight delay to make loading state more noticeable
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Prepare the data as a JSON object
+      const data = {
+        username: formData.email,
+        password: formData.password
+      };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setError("");
-  setSuccess("");
-  // REMOVE THIS LINE - don't clear cookies before login
-  // clearCookies();
+      // Send the request with JSON data AND withCredentials flag
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`, 
+        data,
+        { 
+          withCredentials: true,
+          // Add timeout to prevent hanging requests
+          timeout: 10000 
+        }  
+      );
 
-  try {
-    // Show loading state
-    document.body.style.cursor = "wait";
-    
-    // Prepare the data as a JSON object
-    const data = {
-      username: formData.email,
-      password: formData.password
-    };
+      console.log(`Login response:`, JSON.stringify(response.data));
 
-    // Send the request with JSON data AND withCredentials flag
-    const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/token`, 
-      data,
-      { withCredentials: true }  
-    );
-
-    console.log(`Login response:`, JSON.stringify(response.data));
-
-    setSuccess("Login successful! Redirecting...");
-    
-    // Redirect after a short delay
-    setTimeout(() => {
-      router.push("/chat");
-    }, 1000);
-    
-  } catch (error: any) {
-    console.error("Login failed:", error);
-    
-    // Handle error response
-    const serverMessage =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      "Login failed. Please check your credentials and try again.";
-    
-    setError(serverMessage);
-  } finally {
-    setIsLoading(false);
-    document.body.style.cursor = "default";
-  }
-};
-
-
+      setSuccess("Login successful! Redirecting...");
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        router.push("/chat");
+      }, 1000);
+      
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      
+      // Handle error response
+      const serverMessage =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        (error?.code === 'ECONNABORTED' ? 
+          "Connection timed out. Please check your internet connection and try again." :
+          "Login failed. Please check your credentials and try again.");
+      
+      setError(serverMessage);
+    } finally {
+      setIsLoading(false);
+      setInputsDisabled(false);  // Re-enable inputs
+      document.body.style.cursor = "default";
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4 overflow-hidden">
+      {/* Add loading overlay when isLoading is true */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+          <div className="flex flex-col items-center space-y-4 bg-gray-900/90 p-6 rounded-xl border border-indigo-500/30 shadow-2xl">
+            <Loader2Icon className="h-10 w-10 text-indigo-400 animate-spin" />
+            <p className="text-indigo-200 font-medium">Processing your request...</p>
+          </div>
+        </div>
+      )}
+      
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-indigo-900/20 to-transparent opacity-50"></div>
@@ -165,6 +202,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       <div className={`w-full max-w-md relative transition-all duration-700 ${fadeIn.card}`}>
         <Card className="border border-indigo-900/30 shadow-xl bg-gray-900/80 backdrop-blur-md text-white overflow-hidden">
+          {/* Progress bar loading indicator */}
           <div className="absolute top-0 left-0 w-full h-1">
             {isLoading && (
               <div className="h-full bg-indigo-600 animate-progress-indeterminate"></div>
@@ -183,31 +221,33 @@ const handleSubmit = async (e: React.FormEvent) => {
           <form onSubmit={handleSubmit}>
             <CardContent className={`space-y-5 transition-opacity duration-500 ${fadeIn.form}`}>
               {error && (
-                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-200 rounded-md text-sm font-medium">
+                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-200 rounded-md text-sm font-medium animate-pulse-once">
                   {error}
                 </div>
               )}
               
               {success && (
-                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium">
+                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium animate-pulse-once">
                   {success}
                 </div>
               )}
             
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-gray-300 font-medium">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                  disabled={isLoading}
-                />
+                <div className="relative">
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    autoComplete="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${inputsDisabled ? 'opacity-70' : ''}`}
+                    disabled={inputsDisabled}
+                  />
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -215,7 +255,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   <Label htmlFor="password" className="text-gray-300 font-medium">Password</Label>
                   <Link 
                     href="/auth/forgot-password" 
-                    className="text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors hover:underline"
+                    className={`text-sm font-medium text-indigo-400 hover:text-indigo-300 transition-colors hover:underline ${inputsDisabled ? 'pointer-events-none opacity-70' : ''}`}
                   >
                     Forgot password?
                   </Link>
@@ -230,15 +270,15 @@ const handleSubmit = async (e: React.FormEvent) => {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="h-12 pr-10 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                    disabled={isLoading}
+                    className={`h-12 pr-10 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${inputsDisabled ? 'opacity-70' : ''}`}
+                    disabled={inputsDisabled}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-200 transition-colors"
+                    className={`absolute right-3 top-3.5 text-gray-400 hover:text-gray-200 transition-colors ${inputsDisabled ? 'opacity-70 pointer-events-none' : ''}`}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    disabled={isLoading}
+                    disabled={inputsDisabled}
                   >
                     {showPassword ? (
                       <EyeOffIcon className="h-5 w-5" />
@@ -253,8 +293,8 @@ const handleSubmit = async (e: React.FormEvent) => {
             <CardFooter className={`flex flex-col space-y-5 pt-3 transition-opacity duration-500 ${fadeIn.footer}`}>
               <Button 
                 type="submit" 
-                className="w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30"
-                disabled={isLoading}
+                className={`w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30 ${isLoading ? 'animate-pulse' : ''}`}
+                disabled={inputsDisabled}
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
@@ -282,7 +322,10 @@ const handleSubmit = async (e: React.FormEvent) => {
               
               <p className="text-center text-base font-medium text-gray-300">
                 Don&apos;t have an account?{" "}
-                <Link href="/auth/register" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline">
+                <Link 
+                  href="/auth/register" 
+                  className={`font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline ${inputsDisabled ? 'pointer-events-none opacity-70' : ''}`}
+                >
                   Sign up
                 </Link>
               </p>

@@ -845,7 +845,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       
       {/* Personality Dialog */}
       <Dialog open={isPersonalityDialogOpen} onOpenChange={setIsPersonalityDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{personality?.id ? "Edit" : "Create"} AI Personality</DialogTitle>
             <DialogDescription>
@@ -892,7 +892,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       
       {/* Add Knowledge Dialog */}
       <Dialog open={isKnowledgeDialogOpen} onOpenChange={setIsKnowledgeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Knowledge</DialogTitle>
             <DialogDescription>
@@ -947,7 +947,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       
       {/* Edit Knowledge Dialog */}
       <Dialog open={isEditKnowledgeDialogOpen} onOpenChange={setIsEditKnowledgeDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Knowledge</DialogTitle>
             <DialogDescription>
