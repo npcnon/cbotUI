@@ -105,10 +105,12 @@ export default function ChatPage() {
 
   // AI Model options
   const aiModels = [
-    { value: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B" },
-    { value: "coming soon!", label: "Coming soon!" },
+    { value: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B", disabled: false },
+    { value: "deepseek-ai/DeepSeek-V3", label: "DeepSeek V3", disabled: false },
+    { value: "meta-llama/Llama-3.3-70B-Instruct", label: "Llama-3.3-70B-Instruct (Coming Soon)", disabled: true },
+    { value: "more-coming-soon", label: "More models coming soon...", disabled: true },
   ]
-  
+    
   const router = useRouter()
   // Fetch personality and knowledge data on mount
   useEffect(() => {
@@ -686,17 +688,35 @@ export default function ChatPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Select defaultValue="mistralai/Mistral-7B-Instruct-v0.3">
+                      <Select 
+                        defaultValue="mistralai/Mistral-7B-Instruct-v0.3"
+                        onValueChange={(value) => {
+                          apiClient.put(`/custom-ai/${customAIId}`, {
+                            ai_model: value
+                          })
+                          .then(response => {
+                            toast.success("AI model updated successfully");
+                          })
+                          .catch(error => {
+                            console.error("Error updating AI model:", error);
+                            toast.error("Failed to update AI model. Please try again.");
+                          });
+                        }}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select an AI model" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {aiModels.map(model => (
-                            <SelectItem key={model.value} value={model.value}>
-                              {model.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
+                          <SelectContent>
+                            {aiModels.map(model => (
+                              <SelectItem 
+                                key={model.value} 
+                                value={model.value} 
+                                disabled={model.disabled}
+                              >
+                                {model.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
                       </Select>
                     </CardContent>
                   </Card>
