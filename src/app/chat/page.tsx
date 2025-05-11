@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog"
-import { AlertCircle, Plus, Trash2, Edit, Send, PenLine, BookOpen, Loader2, Key } from "lucide-react"
+import { AlertCircle, Plus, Trash2, Edit, Send, PenLine, BookOpen, Loader2, Key, LogOut } from "lucide-react"
 import {
   Tabs,
   TabsContent,
@@ -37,6 +37,8 @@ import { toast } from "sonner"
 import { ApiKeysSidebar } from "@/components/chatbot/ApiKeySideBar"
 import { stringify } from "querystring"
 import { useRouter } from "next/navigation"
+import HowToUseDialog from "@/components/instructions/HowToUseDialog"
+
 interface Message {
   role: "user" | "assistant" | "system"
   content: string
@@ -95,7 +97,7 @@ export default function ChatPage() {
   const [isEditKnowledgeDialogOpen, setIsEditKnowledgeDialogOpen] = useState(false)
   const [customAIId, setCustomAIId] = useState<string>("") // Default AI ID
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true) //TODO: fix this expansion later
-
+  const [currentAIModel, setCurrentAIModel] = useState("mistralai/Mistral-7B-Instruct-v0.3");
   // UI state
   const [activeTab, setActiveTab] = useState("chat")
   const [avatars, setAvatars] = useState({
@@ -105,8 +107,9 @@ export default function ChatPage() {
 
   // AI Model options
   const aiModels = [
-    { value: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B", disabled: false },
+    { value: "mistralai/Mistral-7B-Instruct-v0.3", label: "Mistral 7B(Temporarily not available)", disabled: true },
     { value: "deepseek-ai/DeepSeek-V3", label: "DeepSeek V3", disabled: false },
+    { value: "Qwen3-235B-A22B", label: "Qwen3 (Coming Soon)", disabled: true },
     { value: "meta-llama/Llama-3.3-70B-Instruct", label: "Llama-3.3-70B-Instruct (Coming Soon)", disabled: true },
     { value: "more-coming-soon", label: "More models coming soon...", disabled: true },
   ]
@@ -128,19 +131,28 @@ export default function ChatPage() {
   const checkAuth = async () => {
     try {
       await apiClient.get('/user/me')
-      const custom_ai = await apiClient.get('/custom-ai/me')
-
-      if (custom_ai.data) {
-        console.log(stringify(custom_ai.data))
-        setCustomAIId(custom_ai.data.id)
+      const customAIResponse = await apiClient.get('/custom-ai/me')
+      if (customAIResponse.data) {
+        setCustomAIId(customAIResponse.data.id)
+        setCurrentAIModel(customAIResponse.data.ai_model || "mistralai/Mistral-7B-Instruct-v0.3")
       }
-
       return true
     } catch (error) {
       console.error("Authentication error:", error)
       // User is not authenticated, immediately redirect to login page
       router.replace('/auth/login')
       return // Stop further execution
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/user/logout')
+      toast.success("Logged out successfully")
+      router.replace('/auth/login')
+    } catch (error) {
+      console.error("Logout error:", error)
+      toast.error("Failed to logout. Please try again.")
     }
   }
 
@@ -238,73 +250,78 @@ export default function ChatPage() {
   }
 
   // Chat functionality
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  
+  if (!userInput.trim()) return
+  
+  // Add user message
+  const newUserMessage: Message = { 
+    role: "user", 
+    content: userInput,
+    timestamp: new Date()
+  }
+  const updatedMessages: Message[] = [...messages, newUserMessage]
+  
+  setMessages(updatedMessages)
+  setUserInput("")
+  
+  setIsLoading(true)
+  
+  try {
+    // Create chat history in the format required by the API
+    const chatHistory = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
     
-    if (!userInput.trim()) return
+    // Call the chat API endpoint with chat history
+    const response = await apiClient.post('/chat', {
+      ai_id: customAIId,
+      user_text: userInput,
+      chat_history: chatHistory // Send the chat history to the API
+    });
     
-    // Add user message
-    const newUserMessage: Message = { 
-      role: "user", 
-      content: userInput,
+    console.log("API response:", response.data);
+    
+    // Extract the assistant's response from the API response
+    const assistantResponseContent = response.data.response || "I'm not sure how to respond to that.";
+    
+    // Add assistant response to the messages
+    const assistantMessage: Message = { 
+      role: "assistant", 
+      content: assistantResponseContent,
       timestamp: new Date()
     }
-    const updatedMessages: Message[] = [...messages, newUserMessage]
     
-    setMessages(updatedMessages)
-    setUserInput("")
+    // setMessages([...updatedMessages, assistantMessage])
     
-    setIsLoading(true)
-    
-    try {
-      // Create chat history in the format required by the API
-      const chatHistory = messages.map(msg => ({
+
+    const apiChatHistory = response.data.chat_history;
+    if (apiChatHistory && Array.isArray(apiChatHistory)) {
+      const formattedMessages = apiChatHistory.map(msg => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
+        timestamp: new Date()
       }));
-      
-      // Add the new user message to the chat history
-      chatHistory.push({
-        role: "user",
-        content: userInput
-      });
-      
-      // Call the chat API endpoint
-      const response = await apiClient.post('/chat', {
-        ai_id: customAIId, // Use the AI ID from personality
-        user_text: userInput,
-        // Only include chat_history if you need it for your API
-        // chat_history: chatHistory 
-      });
-      
-      console.log("API response:", response.data);
-      
-      // Extract the assistant's response from the API response
-      const assistantResponseContent = response.data.response || response.data.message || "I'm not sure how to respond to that.";
-      
-      // Add assistant response to the messages
-      const assistantMessage: Message = { 
-        role: "assistant", 
-        content: assistantResponseContent,
-        timestamp: new Date()
-      }
-      
-      setMessages([...updatedMessages, assistantMessage])
-    } catch (error) {
-      console.error("Error generating response:", error)
-      toast.error("Failed to generate AI response. Please try again.")
-      
-      // Add a fallback message in case of error
-      const errorMessage: Message = { 
-        role: "assistant", 
-        content: "Sorry, I encountered an error while processing your request. Please try again later.",
-        timestamp: new Date()
-      }
-      setMessages([...updatedMessages, errorMessage])
-    } finally {
-      setIsLoading(false)
+      setMessages(formattedMessages);
     }
+    
+  } catch (error) {
+    console.error("Error generating response:", error)
+    toast.error("Failed to generate AI response. Please try again.")
+    
+    // Add a fallback message in case of error
+    const errorMessage: Message = { 
+      role: "assistant", 
+      content: "Sorry, I encountered an error while processing your request. Please try again later.",
+      timestamp: new Date()
+    }
+    setMessages([...updatedMessages, errorMessage])
+  } finally {
+    setIsLoading(false)
   }
+}
 
   // Personality management
   const handleUpdatePersonality = async () => {
@@ -476,11 +493,23 @@ export default function ChatPage() {
     <div className="flex h-screen">
       {/* Main content area */}
       <div className="flex-1 flex flex-col max-h-screen">
-      <header className="p-4 border-b">
-          <h1 className="text-2xl font-bold">Custom AI Assistant(DEMO VERSION)</h1>
-          <p className="text-sm text-muted-foreground">
-            Chat with your personalized AI assistant with custom knowledge
-          </p>
+        <header className="p-4 border-b flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Custom AI Assistant(DEMO VERSION)</h1>
+            <p className="text-sm text-muted-foreground">
+              Chat with your personalized AI assistant with custom knowledge
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <HowToUseDialog />
+            <Button 
+              variant="outline" 
+              onClick={handleLogout} 
+              className="flex items-center gap-1"
+            >
+              <LogOut className="h-4 w-4" /> Logout
+            </Button>
+          </div>
         </header>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} 
@@ -689,8 +718,11 @@ export default function ChatPage() {
                     </CardHeader>
                     <CardContent>
                       <Select 
-                        defaultValue="mistralai/Mistral-7B-Instruct-v0.3"
+                        value={currentAIModel}
                         onValueChange={(value) => {
+                          setCurrentAIModel(value); // Update local state immediately
+                          
+                          // Add the API call to update the model
                           apiClient.put(`/custom-ai/${customAIId}`, {
                             ai_model: value
                           })
@@ -700,23 +732,24 @@ export default function ChatPage() {
                           .catch(error => {
                             console.error("Error updating AI model:", error);
                             toast.error("Failed to update AI model. Please try again.");
+                            setCurrentAIModel(currentAIModel);
                           });
                         }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select an AI model" />
                         </SelectTrigger>
-                          <SelectContent>
-                            {aiModels.map(model => (
-                              <SelectItem 
-                                key={model.value} 
-                                value={model.value} 
-                                disabled={model.disabled}
-                              >
-                                {model.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                        <SelectContent>
+                          {aiModels.map(model => (
+                            <SelectItem 
+                              key={model.value} 
+                              value={model.value} 
+                              disabled={model.disabled}
+                            >
+                              {model.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </CardContent>
                   </Card>
