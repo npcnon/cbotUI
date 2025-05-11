@@ -37,21 +37,15 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   
   // Animation states
-  const [mounted, setMounted] = useState(false);
-  const [inputsDisabled, setInputsDisabled] = useState(false);
   const [fadeIn, setFadeIn] = useState({
     card: "opacity-0 translate-y-4",
     title: "opacity-0",
     form: "opacity-0",
     footer: "opacity-0"
   });
-  useEffect(() => {
-    setInputsDisabled(isLoading);
-  }, [isLoading]);
+
   // Initialize animations after mount
   useEffect(() => {
-    setMounted(true);
-    
     // Staggered animations
     const timer1 = setTimeout(() => {
       setFadeIn(prev => ({
@@ -118,55 +112,49 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, agreeToTerms: checked }));
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setInputsDisabled(true);  // Disable form inputs immediately
-  setError("");
-  setSuccess("");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
 
-  try {
-    // Show loading state
-    document.body.style.cursor = "wait";
-    
-    // Add a slight delay to make loading state more noticeable
-    await new Promise(resolve => setTimeout(resolve, 300));
+    try {
+      // Add a slight delay to make loading state more noticeable
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/register`, {
-      email: formData.email,
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      password: formData.password,
-    }, {
-      // Add timeout to prevent hanging requests
-      timeout: 10000
-    });
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/user/register`, {
+        email: formData.email,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        password: formData.password,
+      }, {
+        // Add timeout to prevent hanging requests
+        timeout: 10000
+      });
 
-    console.log("Registration successful:", response.data);
-    setSuccess("Account created successfully! Redirecting...");
+      console.log("Registration successful:", response.data);
+      setSuccess("Account created successfully! Redirecting...");
 
-    // Redirect after short delay
-    setTimeout(() => {
-      router.push("/auth/login?registered=true");
-    }, 1500);
-  } catch (error: any) {
-    console.error("Registration failed:", error);
+      // Redirect after short delay
+      setTimeout(() => {
+        router.push("/auth/login?registered=true");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Registration failed:", error);
 
-    // Handle FastAPI's HTTPException
-    const serverMessage =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message || // fallback if detail is not used
-      (error?.code === 'ECONNABORTED' ? 
-        "Connection timed out. Please check your internet connection and try again." :
-        "Registration failed. Please try again.");
+      // Handle FastAPI's HTTPException
+      const serverMessage =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message || // fallback if detail is not used
+        (error?.code === 'ECONNABORTED' ? 
+          "Connection timed out. Please check your internet connection and try again." :
+          "Registration failed. Please try again.");
 
-    setError(serverMessage);
-  } finally {
-    setIsLoading(false);
-    setInputsDisabled(false);  // Re-enable inputs
-    document.body.style.cursor = "default";
-  }
-};
+      setError(serverMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4 overflow-hidden">
@@ -178,7 +166,6 @@ const handleSubmit = async (e: React.FormEvent) => {
           </div>
         </div>
       )}
-      
       
       {/* Decorative background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -207,14 +194,14 @@ const handleSubmit = async (e: React.FormEvent) => {
           <form onSubmit={handleSubmit}>
             <CardContent className={`space-y-5 transition-opacity duration-500 ${fadeIn.form}`}>
               {success && (
-                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium animate-pulse-once">
+                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium">
                   {success}
                 </div>
               )}
               
-              {success && (
-                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium">
-                  {success}
+              {error && (
+                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-200 rounded-md text-sm font-medium">
+                  {error}
                 </div>
               )}
               
@@ -230,7 +217,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     value={formData.first_name}
                     onChange={handleChange}
                     className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                    disabled={inputsDisabled}
+                    disabled={isLoading}
                   />
                 </div>
                 
@@ -245,7 +232,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                     value={formData.last_name}
                     onChange={handleChange}
                     className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                    disabled={inputsDisabled}
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -262,7 +249,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   value={formData.email}
                   onChange={handleChange}
                   className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                  disabled={inputsDisabled}
+                  disabled={isLoading}
                 />
               </div>
               
@@ -285,7 +272,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                         ? "border-green-500 focus:ring-green-500" 
                         : ""
                     }`}
-                    disabled={inputsDisabled}
+                    disabled={isLoading}
                   />
                   <button
                     type="button"
@@ -385,7 +372,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 Already have an account?{" "}
                 <Link 
                   href="/auth/login" 
-                  className={`font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline ${inputsDisabled ? 'pointer-events-none opacity-70' : ''}`}
+                  className={`font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline ${isLoading ? 'pointer-events-none opacity-70' : ''}`}
                 >
                   Sign in
                 </Link>
