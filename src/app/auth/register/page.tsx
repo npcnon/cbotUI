@@ -11,8 +11,29 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox";
 import { EyeIcon, EyeOffIcon, Loader2Icon, UserPlusIcon } from "lucide-react";
 import { useLoading } from "@/lib/loading-context";
+import { Suspense } from "react";
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+// Add a proper loading fallback component (similar to login page)
+function LoadingFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4">
+      <div className="flex flex-col items-center space-y-4">
+        <Loader2Icon className="h-12 w-12 text-indigo-400 animate-spin" />
+        <p className="text-lg font-medium text-indigo-200">Loading registration...</p>
+      </div>
+    </div>
+  );
+}
+
+function RegisterForm() {
   const router = useRouter();
   const { isLoading, setIsLoading } = useLoading();
   const [showPassword, setShowPassword] = useState(false);
@@ -37,15 +58,21 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("");
   
   // Animation states
+  const [mounted, setMounted] = useState(false);
   const [fadeIn, setFadeIn] = useState({
     card: "opacity-0 translate-y-4",
     title: "opacity-0",
     form: "opacity-0",
     footer: "opacity-0"
   });
+  
+  // Input disabled state (like in login page)
+  const [inputsDisabled, setInputsDisabled] = useState(false);
 
   // Initialize animations after mount
   useEffect(() => {
+    setMounted(true);
+    
     // Staggered animations
     const timer1 = setTimeout(() => {
       setFadeIn(prev => ({
@@ -83,6 +110,11 @@ export default function RegisterPage() {
     };
   }, []);
 
+  // Update inputs disabled state when loading changes (like login page)
+  useEffect(() => {
+    setInputsDisabled(isLoading);
+  }, [isLoading]);
+
   // Validate password when it changes
   useEffect(() => {
     if (formData.password.length === 0) {
@@ -115,10 +147,14 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setInputsDisabled(true); // Disable form inputs immediately
     setError("");
     setSuccess("");
 
     try {
+      // Show loading state with cursor change (like login page)
+      document.body.style.cursor = "wait";
+      
       // Add a slight delay to make loading state more noticeable
       await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -153,16 +189,19 @@ export default function RegisterPage() {
       setError(serverMessage);
     } finally {
       setIsLoading(false);
+      setInputsDisabled(false); // Re-enable inputs
+      document.body.style.cursor = "default"; // Reset cursor
     }
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-indigo-950 p-4 overflow-hidden">
+      {/* Add loading overlay when isLoading is true - enhanced like login page */}
       {isLoading && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center space-y-4 bg-gray-900/90 p-6 rounded-xl border border-indigo-500/30 shadow-2xl">
             <Loader2Icon className="h-10 w-10 text-indigo-400 animate-spin" />
-            <p className="text-indigo-200 font-medium">Creating your account...</p>
+            <p className="text-indigo-200 font-medium">Processing your request...</p>
           </div>
         </div>
       )}
@@ -176,6 +215,7 @@ export default function RegisterPage() {
 
       <div className={`w-full max-w-md relative transition-all duration-700 ${fadeIn.card}`}>
         <Card className="border border-indigo-900/30 shadow-xl bg-gray-900/80 backdrop-blur-md text-white overflow-hidden">
+          {/* Add progress bar loading indicator - like login page */}
           <div className="absolute top-0 left-0 w-full h-1">
             {isLoading && (
               <div className="h-full bg-indigo-600 animate-progress-indeterminate"></div>
@@ -194,13 +234,13 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit}>
             <CardContent className={`space-y-5 transition-opacity duration-500 ${fadeIn.form}`}>
               {success && (
-                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium">
+                <div className="p-3 bg-green-900/30 border border-green-500/50 text-green-200 rounded-md text-sm font-medium animate-pulse-once">
                   {success}
                 </div>
               )}
               
               {error && (
-                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-200 rounded-md text-sm font-medium">
+                <div className="p-3 bg-red-900/30 border border-red-500/50 text-red-200 rounded-md text-sm font-medium animate-pulse-once">
                   {error}
                 </div>
               )}
@@ -216,8 +256,8 @@ export default function RegisterPage() {
                     required
                     value={formData.first_name}
                     onChange={handleChange}
-                    className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                    disabled={isLoading}
+                    className={`h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${inputsDisabled ? 'opacity-70' : ''}`}
+                    disabled={inputsDisabled}
                   />
                 </div>
                 
@@ -231,8 +271,8 @@ export default function RegisterPage() {
                     required
                     value={formData.last_name}
                     onChange={handleChange}
-                    className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                    disabled={isLoading}
+                    className={`h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${inputsDisabled ? 'opacity-70' : ''}`}
+                    disabled={inputsDisabled}
                   />
                 </div>
               </div>
@@ -248,8 +288,8 @@ export default function RegisterPage() {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500"
-                  disabled={isLoading}
+                  className={`h-12 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${inputsDisabled ? 'opacity-70' : ''}`}
+                  disabled={inputsDisabled}
                 />
               </div>
               
@@ -265,21 +305,21 @@ export default function RegisterPage() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className={`h-12 pr-10 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${
+                    className={`h-12 pr-10 transition-all duration-200 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 bg-gray-800/80 border-gray-700 text-white placeholder:text-gray-500 ${inputsDisabled ? 'opacity-70' : ''} ${
                       formData.password && !validation.password.isValid 
                         ? "border-red-500 focus:ring-red-500" 
                         : formData.password && validation.password.isValid 
                         ? "border-green-500 focus:ring-green-500" 
                         : ""
                     }`}
-                    disabled={isLoading}
+                    disabled={inputsDisabled}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-200 transition-colors"
+                    className={`absolute right-3 top-3.5 text-gray-400 hover:text-gray-200 transition-colors ${inputsDisabled ? 'opacity-70 pointer-events-none' : ''}`}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    disabled={isLoading}
+                    disabled={inputsDisabled}
                   >
                     {showPassword ? (
                       <EyeOffIcon className="h-5 w-5" />
@@ -313,18 +353,18 @@ export default function RegisterPage() {
                     onCheckedChange={handleCheckboxChange}
                     required
                     className="h-5 w-5 transition-all duration-200 border-2 border-indigo-500 data-[state=checked]:bg-indigo-600 text-white"
-                    disabled={isLoading}
+                    disabled={inputsDisabled}
                   />
                   <label
                     htmlFor="terms"
                     className="text-sm font-medium text-gray-300 leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70 select-none"
                   >
                     I agree to the{" "}
-                    <Link href="/terms" className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors font-semibold">
+                    <Link href="/terms" className={`text-indigo-400 hover:text-indigo-300 hover:underline transition-colors font-semibold ${inputsDisabled ? 'pointer-events-none opacity-70' : ''}`}>
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link href="/privacy" className="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors font-semibold">
+                    <Link href="/privacy" className={`text-indigo-400 hover:text-indigo-300 hover:underline transition-colors font-semibold ${inputsDisabled ? 'pointer-events-none opacity-70' : ''}`}>
                       Privacy Policy
                     </Link>
                   </label>
@@ -335,8 +375,8 @@ export default function RegisterPage() {
             <CardFooter className={`flex flex-col space-y-5 pt-4 transition-opacity duration-500 ${fadeIn.footer}`}>
               <Button 
                 type="submit" 
-                className={`w-full h-12 text-base font-semibold text-indigo-300 bg-indigo-600 hover:bg-indigo-500 hover:text-indigo-100 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30 ${isLoading ? 'animate-pulse' : ''}`}
-                disabled={isLoading || !formData.agreeToTerms || !validation.password.isValid}
+                className={`w-full h-12 text-base font-semibold bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-indigo-500/30 ${isLoading ? 'animate-pulse' : ''}`}
+                disabled={inputsDisabled || !formData.agreeToTerms || !validation.password.isValid}
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center">
@@ -372,7 +412,7 @@ export default function RegisterPage() {
                 Already have an account?{" "}
                 <Link 
                   href="/auth/login" 
-                  className={`font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline ${isLoading ? 'pointer-events-none opacity-70' : ''}`}
+                  className={`font-semibold text-indigo-400 hover:text-indigo-300 transition-colors hover:underline ${inputsDisabled ? 'pointer-events-none opacity-70' : ''}`}
                 >
                   Sign in
                 </Link>
